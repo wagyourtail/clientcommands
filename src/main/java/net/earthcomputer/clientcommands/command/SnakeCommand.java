@@ -17,9 +17,7 @@ import net.minecraft.util.Identifier;
 import net.minecraft.util.math.Direction;
 import org.lwjgl.glfw.GLFW;
 
-import java.util.LinkedList;
-import java.util.ListIterator;
-import java.util.Random;
+import java.util.*;
 
 import static net.fabricmc.fabric.api.client.command.v2.ClientCommandManager.*;
 
@@ -55,6 +53,8 @@ class SnakeGameScreen extends Screen {
     private int tickCounter = 10;
     private Direction direction = Direction.EAST;
     private Direction lastMoved = Direction.EAST;
+    private Direction lastPremove = Direction.EAST;
+    private Queue<Direction> premove = new LinkedList<>();
     private final LinkedList<Vec2i> snake = new LinkedList<>();
     private Vec2i apple;
 
@@ -122,6 +122,7 @@ class SnakeGameScreen extends Screen {
         Vec2i head = this.snake.getFirst();
         this.snake.addFirst(new Vec2i(head.x() + this.direction.getOffsetX(), head.z() + this.direction.getOffsetZ()));
         this.lastMoved = this.direction;
+        this.direction = !this.premove.isEmpty() ? this.premove.poll() : this.direction;
         if (this.checkGameOver()) {
             client.getSoundManager().play(PositionedSoundInstance.master(SoundEvents.ENTITY_OCELOT_DEATH, 1));
             this.close();
@@ -157,10 +158,17 @@ class SnakeGameScreen extends Screen {
     }
 
     private boolean setDirection(Direction direction) {
-        if (this.lastMoved == direction.getOpposite()) {
-            return false;
+        if (lastMoved != this.direction) {
+            if (this.direction != this.lastPremove.getOpposite()) {
+                this.premove.add(direction);
+                this.lastPremove = direction;
+            }
+        } else {
+            if (this.lastMoved == direction.getOpposite()) {
+                return false;
+            }
+            this.direction = direction;
         }
-        this.direction = direction;
         return true;
     }
 }
